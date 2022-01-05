@@ -59,10 +59,15 @@ AFRAME.registerSystem("facemoji", {
       this.videoEl.srcObject = stream
       console.log("got stream")
       this.tracking = true
+      this.el.sceneEl.systems["preview-self"].enable()
     })
     this.el.sceneEl.addEventListener("action_end_video_sharing", () => {
-      this.tracking = false
+      this.stopTracking()
     })
+  },
+  stopTracking: function () {
+    this.tracking = false
+    this.el.sceneEl.systems["preview-self"].disable()
   },
   tick: function () {
     if (this.tracking) {

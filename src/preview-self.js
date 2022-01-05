@@ -53,38 +53,47 @@ AFRAME.registerSystem("preview-self", {
     setInterval(() => {
       this.updateRenderTargetNextTick = true
     }, 1000 / fps)
+
+    this.disable()
+  },
+  enable: function () {
+    this.screen.visible = true
+  },
+  disable: function () {
+    this.screen.visible = false
   },
   tick: function () {
-    // Position preview origin at bottom right of camera view
-    this.screen.position.set(0, 0, -2)
-    this.screen.position.applyMatrix4(this.el.sceneEl.camera.projectionMatrix)
-    // NDC (Bottom right)
-    this.screen.position.x = 1
-    this.screen.position.y = -1
-    // Unproject back into view space
-    this.screen.position.applyMatrix4(
-      this.el.sceneEl.camera.projectionMatrixInverse,
-    )
-    this.screen.updateMatrix()
-  },
-  tock: function () {
-    // Ensure background is transparent
-    this.el.sceneEl.object3D.background = null
-    if (this.updateRenderTargetNextTick) {
-      const renderer = this.el.sceneEl.renderer
-      const scene = this.el.sceneEl.object3D
+    if (this.screen.visible) {
+      // Position preview origin at bottom right of camera view
+      this.screen.position.set(0, 0, -2)
+      this.screen.position.applyMatrix4(this.el.sceneEl.camera.projectionMatrix)
+      // NDC (Bottom right)
+      this.screen.position.x = 1
+      this.screen.position.y = -1
+      // Unproject back into view space
+      this.screen.position.applyMatrix4(
+        this.el.sceneEl.camera.projectionMatrixInverse,
+      )
+      this.screen.updateMatrix()
 
-      const tmpOnAfterRender = scene.onAfterRender
-      delete scene.onAfterRender
+      // Ensure background is transparent
+      this.el.sceneEl.object3D.background = null
+      if (this.updateRenderTargetNextTick) {
+        const renderer = this.el.sceneEl.renderer
+        const scene = this.el.sceneEl.object3D
 
-      showPlayerHead()
-      renderer.setRenderTarget(this.renderTarget)
-      renderer.render(scene, this.camera)
-      renderer.setRenderTarget(null)
-      scene.onAfterRender = tmpOnAfterRender
-      hidePlayerHead()
+        const tmpOnAfterRender = scene.onAfterRender
+        delete scene.onAfterRender
 
-      this.updateRenderTargetNextTick = false
+        showPlayerHead()
+        renderer.setRenderTarget(this.renderTarget)
+        renderer.render(scene, this.camera)
+        renderer.setRenderTarget(null)
+        scene.onAfterRender = tmpOnAfterRender
+        hidePlayerHead()
+
+        this.updateRenderTargetNextTick = false
+      }
     }
   },
 })
