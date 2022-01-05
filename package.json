@@ -2,15 +2,17 @@
   "name": "mocap4face-hubs",
   "version": "0.0.0",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  },
-  "devDependencies": {
-    "vite": "^2.7.2"
+    "dev": "node scripts/dev.js",
+    "build": "node scripts/build.js",
+    "tunnel": "ngrok start --all --config ngrok.yaml"
   },
   "dependencies": {
     "@facemoji/mocap4face": "^0.2.0",
     "three": "^0.136.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.14.10",
+    "live-server": "^1.2.1",
+    "ngrok": "^4.2.2"
   }
 }
