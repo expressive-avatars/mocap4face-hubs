@@ -10,6 +10,7 @@ import {
   Vec2,
 } from "@facemoji/mocap4face"
 import env from "../env.local"
+import { withFaceButton } from "./button"
 import { startMediaStream } from "./media-stream"
 
 AFRAME.registerSystem("facemoji", {
@@ -32,13 +33,16 @@ AFRAME.registerSystem("facemoji", {
     const asyncTracker = FaceTracker.createVideoTracker(fs)
       .then((tracker) => {
         console.log("Started tracking")
-        window.tracker = tracker
         return tracker
       })
       .logError("Could not start tracking")
 
     const videoEl = document.createElement("video")
     videoEl.autoplay = true
+
+    withFaceButton((button) => {
+      button.addEventListener("click", () => this.startTracking())
+    })
 
     // Instance properties
     this.tracking = false
@@ -50,6 +54,9 @@ AFRAME.registerSystem("facemoji", {
       this.videoEl.srcObject = stream
       console.log("got stream")
       this.tracking = true
+    })
+    this.el.sceneEl.addEventListener("action_end_video_sharing", () => {
+      this.tracking = false
     })
   },
   tick: function () {
