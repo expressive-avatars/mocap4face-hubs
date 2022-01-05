@@ -57,9 +57,11 @@ AFRAME.registerSystem("facemoji", {
   startTracking: async function () {
     startMediaStream((stream) => {
       this.videoEl.srcObject = stream
-      console.log("got stream")
       this.tracking = true
       this.el.sceneEl.systems["preview-self"].enable()
+      this.avatarRig
+        .querySelector("[loop-animation]")
+        .removeAttribute("loop-animation")
     })
     this.el.sceneEl.addEventListener("action_end_video_sharing", () => {
       this.stopTracking()
@@ -68,7 +70,14 @@ AFRAME.registerSystem("facemoji", {
   stopTracking: function () {
     this.tracking = false
     this.el.sceneEl.systems["preview-self"].disable()
-    this.avatarRig.components["apply-morph-targets"].reset()
+
+    for (let blendShape in this.faceRoot.components["morph-targets"].data) {
+      this.faceRoot.components["morph-targets"].data[blendShape] = 0
+      this.faceRoot.setAttribute(
+        "morph-targets",
+        this.faceRoot.components["morph-targets"].data,
+      )
+    }
     this.faceRoot.object3D.quaternion.identity()
   },
   tick: function () {
@@ -76,11 +85,14 @@ AFRAME.registerSystem("facemoji", {
       const tracker = this.asyncTracker.currentValue
       const lastResult = tracker.track(this.videoEl)
       if (lastResult) {
-        const blendShapesObject = Object.fromEntries(lastResult.blendshapes)
+        const blendShapes = {}
+        for (let [name, value] of lastResult.blendshapes) {
+          blendShapes[facemoji2arkit[name]] = value
+        }
         const quaternionArray = lastResult.rotationQuaternion.asList().toArray()
         this.faceRoot.object3D.quaternion.fromArray(quaternionArray)
         this.avatarRig.components["apply-morph-targets"].applyBlendShapes(
-          blendShapesObject,
+          blendShapes,
         )
       }
     }
@@ -102,37 +114,42 @@ AFRAME.registerComponent("apply-morph-targets", {
       }
     })
 
-    // Array for reuse
-    this.morphTargetInfluences = Array.from(
-      this.skinnedMeshes[0].morphTargetInfluences,
-    )
-  },
-  /**
-   * Maps facemoji blendshapes into an array of morphTargetInfluences
-   * then applies this to the networked morph-targets attribute
-   */
-  applyBlendShapes: function (facemojiBlendShapes) {
-    for (let blendShape in facemojiBlendShapes) {
-      this.morphTargetInfluences[
-        this.skinnedMeshes[0].morphTargetDictionary[facemoji2arkit[blendShape]]
-      ] = facemojiBlendShapes[blendShape]
+    /** @type {Record<'left'|'right', THREE.Bone>} */
+    this.eyes = {
+      left: this.el.object3D.getObjectByName("LeftEye"),
+      right: this.el.object3D.getObjectByName("RightEye"),
     }
-
-    this.morphTargetsRoot.setAttribute(
-      "morph-targets",
-      this.morphTargetInfluences,
-    )
+    this.eyes.left.matrixAutoUpdate = true
+    this.eyes.right.matrixAutoUpdate = true
+  },
+  applyBlendShapes: function (blendShapes) {
+    this.morphTargetsRoot.setAttribute("morph-targets", blendShapes)
   },
   reset: function () {
-    this.morphTargetsRoot.setAttribute("morph-targets", [])
+    // this.morphTargetsRoot.setAttribute("morph-targets", [])
   },
   tick: function () {
     for (let skinnedMesh of this.skinnedMeshes) {
-      const morphTargetsArray = this.morphTargetsComponent.data ?? []
-      for (let i = 0; i < skinnedMesh.morphTargetInfluences.length; ++i) {
-        skinnedMesh.morphTargetInfluences[i] = morphTargetsArray[i] ?? 0
+      for (let blendShape in this.morphTargetsComponent.data) {
+        skinnedMesh.morphTargetInfluences[
+          skinnedMesh.morphTargetDictionary[blendShape]
+        ] = this.morphTargetsComponent.data[blendShape]
       }
     }
+
+    const {
+      eyeLookDownRight,
+      eyeLookUpRight,
+      eyeLookOutRight,
+      eyeLookOutLeft,
+    } = this.morphTargetsComponent.data
+
+    this.eyes.right.rotation.set(
+      -Math.PI / 2 + eyeLookDownRight * 0.5 - eyeLookUpRight * 0.5,
+      0,
+      Math.PI - eyeLookOutRight + eyeLookOutLeft,
+    )
+    this.eyes.left.rotation.copy(this.eyes.right.rotation)
   },
 })
 
