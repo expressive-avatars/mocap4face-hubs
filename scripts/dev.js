@@ -3,7 +3,7 @@ const server = require("live-server")
 
 esbuild
   .build({
-    entryPoints: ["index.js"],
+    entryPoints: ["src/index.js"],
     bundle: true,
     outdir: "dist",
     format: "esm",
