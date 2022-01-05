@@ -68,6 +68,8 @@ AFRAME.registerSystem("facemoji", {
   stopTracking: function () {
     this.tracking = false
     this.el.sceneEl.systems["preview-self"].disable()
+    this.avatarRig.components["apply-morph-targets"].reset()
+    this.faceRoot.object3D.quaternion.identity()
   },
   tick: function () {
     if (this.tracking) {
@@ -121,11 +123,14 @@ AFRAME.registerComponent("apply-morph-targets", {
       this.morphTargetInfluences,
     )
   },
+  reset: function () {
+    this.morphTargetsRoot.setAttribute("morph-targets", [])
+  },
   tick: function () {
     for (let skinnedMesh of this.skinnedMeshes) {
       const morphTargetsArray = this.morphTargetsComponent.data ?? []
-      for (let i = 0; i < morphTargetsArray.length; ++i) {
-        skinnedMesh.morphTargetInfluences[i] = morphTargetsArray[i]
+      for (let i = 0; i < skinnedMesh.morphTargetInfluences.length; ++i) {
+        skinnedMesh.morphTargetInfluences[i] = morphTargetsArray[i] ?? 0
       }
     }
   },
